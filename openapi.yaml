@@ -1,0 +1,76 @@
+openapi: 3.1.0
+info:
+  title: Sheet to GPT API
+  description: Access and retrieve data from Google Sheets
+  version: 1.0.0
+servers:
+  - url: https://sheet-to-gpt.onrender.com
+  - url: http://localhost:3000
+paths:
+  /api/get-data:
+    get:
+      summary: Retrieve data from a Google Sheet
+      operationId: getSheetData
+      parameters:
+        - name: spreadsheetId
+          in: query
+          schema:
+            type: string
+          description: The ID of the Google Sheet to access
+          required: false
+        - name: sheetName
+          in: query
+          schema:
+            type: string
+            default: Data
+          description: The name of the sheet tab to retrieve data from
+          required: false
+      responses:
+        '200':
+          description: Sheet data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                    description: Array of row objects with column headers as keys
+        '404':
+          description: No data found in the specified sheet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'No data found'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Failed to retrieve sheet data'
+                  details:
+                    type: string
+                    example: 'Error details...'
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'OK' 
