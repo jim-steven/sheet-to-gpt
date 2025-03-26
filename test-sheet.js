@@ -12,30 +12,43 @@ async function testEndpoints() {
     console.log('Health check response:', healthResponse.data);
 
     console.log('\nTesting get-data endpoint...');
-    const dataResponse = await axios.get(`${RENDER_URL}/api/get-data`, {
+    const getDataResponse = await axios.get(`${RENDER_URL}/api/get-data`, {
       params: {
         spreadsheetId: SPREADSHEET_ID,
         sheetName: SHEET_NAME
       }
     });
-    console.log('Data response:', JSON.stringify(dataResponse.data, null, 2));
+    console.log('Get data response:', JSON.stringify(getDataResponse.data, null, 2));
 
     console.log('\nTesting post-data endpoint...');
     const testData = {
       spreadsheetId: SPREADSHEET_ID,
       sheetName: SHEET_NAME,
-      data: [
-        {
-          Email: 'test@example.com',
-          Subject: 'Test Email',
-          Date: new Date().toISOString(),
-          Content: 'This is a test email content'
-        }
-      ]
+      data: [{
+        'Email ID': 'test-' + Date.now(),
+        'Subject': 'Test Email',
+        'Sender Name': 'Test Sender',
+        'Sender Email': 'test@example.com',
+        'Date': new Date().toISOString(),
+        'Email Link': 'https://example.com',
+        'CC Recipients': '',
+        'BCC Recipients': '',
+        'Labels': 'test',
+        'Status': 'saved',
+        'Time Stamp': new Date().toISOString(),
+        'Content': 'This is a test email content'
+      }]
     };
+    const postDataResponse = await axios.post(`${RENDER_URL}/api/post-data`, testData);
+    console.log('Post data response:', JSON.stringify(postDataResponse.data, null, 2));
 
-    const postResponse = await axios.post(`${RENDER_URL}/api/post-data`, testData);
-    console.log('Post data response:', JSON.stringify(postResponse.data, null, 2));
+    console.log('\nTesting remove-data endpoint...');
+    const removeDataResponse = await axios.post(`${RENDER_URL}/api/remove-data`, {
+      spreadsheetId: SPREADSHEET_ID,
+      sheetName: SHEET_NAME,
+      emailId: testData.data[0]['Email ID']
+    });
+    console.log('Remove data response:', JSON.stringify(removeDataResponse.data, null, 2));
 
   } catch (error) {
     console.error('Error testing endpoints:', error.response?.data || error.message);
