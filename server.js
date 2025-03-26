@@ -23,15 +23,21 @@ app.get('/health', (req, res) => {
 // Initialize service account auth
 const getServiceAccountAuth = () => {
   try {
-    // Path to service account credentials file
+    // Get credentials from environment variable
     const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
     
-    return new google.auth.JWT(
+    // Create a new JWT client
+    const auth = new google.auth.JWT(
       credentials.client_email,
       null,
       credentials.private_key,
       ['https://www.googleapis.com/auth/spreadsheets']
     );
+
+    // Set the key algorithm
+    auth.keyAlgorithm = 'RS256';
+    
+    return auth;
   } catch (error) {
     console.error('Error initializing service account:', error);
     throw error;
@@ -43,14 +49,28 @@ app.get('/api/get-data', async (req, res) => {
   try {
     // Get spreadsheet ID from query parameter or use default from env
     const spreadsheetId = req.query.spreadsheetId || process.env.DEFAULT_SPREADSHEET_ID;
-    // Get sheet name from query parameter or use default "Data"
-    const sheetName = req.query.sheetName || 'Data';
+    // Get sheet name from query parameter or use default "email"
+    const sheetName = req.query.sheetName || 'email';
     
     // Authenticate with service account
     const auth = getServiceAccountAuth();
     
     // Create sheets client
     const sheets = google.sheets({ version: 'v4', auth });
+    
+    // First verify the sheet exists
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId,
+    });
+
+    const sheet = spreadsheet.data.sheets.find(s => s.properties.title === sheetName);
+    
+    if (!sheet) {
+      return res.status(404).json({ 
+        error: 'Sheet not found',
+        details: `Sheet "${sheetName}" not found in spreadsheet`
+      });
+    }
     
     // Fetch data from the sheet
     const response = await sheets.spreadsheets.values.get({
@@ -103,7 +123,21 @@ app.post('/api/post-data', async (req, res) => {
     // Create sheets client
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // First, get the headers from the sheet
+    // First verify the sheet exists
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId,
+    });
+
+    const sheet = spreadsheet.data.sheets.find(s => s.properties.title === sheetName);
+    
+    if (!sheet) {
+      return res.status(404).json({ 
+        error: 'Sheet not found',
+        details: `Sheet "${sheetName}" not found in spreadsheet`
+      });
+    }
+
+    // Get the headers from the sheet
     const headersResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: `${sheetName}!A1:Z1`,
@@ -195,10 +229,10 @@ app.post('/api/remove-data', async (req, res) => {
     );
 
     if (rowIndex === -1) {
-      return res.status(404).json({ error: 'Email not found in sheet' });
+      return res.status(404).json({ error: 'Email ID not found in sheet' });
     }
 
-    // Remove the row
+    // Delete the row
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
@@ -217,7 +251,7 @@ app.post('/api/remove-data', async (req, res) => {
 
     res.json({
       message: 'Email successfully removed from sheet',
-      removedRow: rowIndex
+      removedRow: rowIndex + 1
     });
   } catch (error) {
     console.error('Error removing data from sheet:', error);

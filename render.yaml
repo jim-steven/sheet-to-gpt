@@ -1,14 +1,13 @@
 services:
   - type: web
     name: sheet-to-gpt
-    runtime: node
-    plan: free
+    env: node
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: export NODE_OPTIONS=--openssl-legacy-provider && node server.js
     envVars:
       - key: PORT
-        value: 10000
+        value: 3000
       - key: DEFAULT_SPREADSHEET_ID
-        sync: false
+        value: 1m6e-HTb1W_trKMKgkkM-ItcuwJJW-Ab6lM_TKmOAee4
       - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
         sync: false 

@@ -23,4 +23,8 @@ pids
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db 
+Thumbs.db
+
+# Service account credentials
+gpt-to-sheets-452506-d4e70a2a45df.json
+*.json.key 

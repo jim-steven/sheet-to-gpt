@@ -22,7 +22,7 @@ paths:
           in: query
           schema:
             type: string
-            default: Data
+            default: email
           description: The name of the sheet tab to retrieve data from
           required: false
       responses:
@@ -37,7 +37,31 @@ paths:
                     type: array
                     items:
                       type: object
-                      additionalProperties: true
+                      properties:
+                        Email ID:
+                          type: string
+                        Subject:
+                          type: string
+                        Date:
+                          type: string
+                        Email Link:
+                          type: string
+                        Status:
+                          type: string
+                        Time Stamp:
+                          type: string
+                        Content:
+                          type: string
+                        Sender Name:
+                          type: string
+                        Sender Email:
+                          type: string
+                        CC Recipients:
+                          type: string
+                        BCC Recipients:
+                          type: string
+                        Labels:
+                          type: string
                     description: Array of row objects with column headers as keys
         '404':
           description: No data found in the specified sheet
@@ -62,6 +86,146 @@ paths:
                   details:
                     type: string
                     example: 'Error details...'
+  /api/post-data:
+    post:
+      summary: Add data to a Google Sheet
+      operationId: postSheetData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - spreadsheetId
+                - sheetName
+                - data
+              properties:
+                spreadsheetId:
+                  type: string
+                  description: The ID of the Google Sheet to access
+                sheetName:
+                  type: string
+                  default: email
+                  description: The name of the sheet tab to add data to
+                data:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - Email ID
+                      - Subject
+                      - Date
+                      - Email Link
+                    properties:
+                      Email ID:
+                        type: string
+                      Subject:
+                        type: string
+                      Date:
+                        type: string
+                      Email Link:
+                        type: string
+                      Status:
+                        type: string
+                        default: saved
+                      Time Stamp:
+                        type: string
+                      Content:
+                        type: string
+                      Sender Name:
+                        type: string
+                      Sender Email:
+                        type: string
+                      CC Recipients:
+                        type: string
+                      BCC Recipients:
+                        type: string
+                      Labels:
+                        type: string
+      responses:
+        '200':
+          description: Data successfully added to sheet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Data successfully appended to sheet'
+                  updatedRange:
+                    type: string
+                    example: 'email!A2:H2'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Failed to add data to sheet'
+  /api/remove-data:
+    post:
+      summary: Remove data from a Google Sheet
+      operationId: removeSheetData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - spreadsheetId
+                - sheetName
+                - emailId
+              properties:
+                spreadsheetId:
+                  type: string
+                  description: The ID of the Google Sheet to access
+                sheetName:
+                  type: string
+                  default: email
+                  description: The name of the sheet tab to remove data from
+                emailId:
+                  type: string
+                  description: The Email ID to remove from the sheet
+      responses:
+        '200':
+          description: Data successfully removed from sheet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Email successfully removed from sheet'
+                  removedRow:
+                    type: integer
+                    example: 2
+        '404':
+          description: Email ID not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Email ID not found in sheet'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Failed to remove data from sheet'
   /health:
     get:
       summary: Health check endpoint
