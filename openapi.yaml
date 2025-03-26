@@ -9,25 +9,68 @@ servers:
 paths:
   /api/get-data:
     get:
-      summary: Retrieve data from a Google Sheet
-      operationId: getSheetData
-      parameters:
-        - name: spreadsheetId
-          in: query
-          schema:
-            type: string
-          description: The ID of the Google Sheet to access
-          required: false
-        - name: sheetName
-          in: query
-          schema:
-            type: string
-            default: email
-          description: The name of the sheet tab to retrieve data from
-          required: false
+      summary: Retrieve data from the Data sheet
+      operationId: getData
       responses:
         '200':
-          description: Sheet data retrieved successfully
+          description: Data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Date:
+                          type: string
+                          example: "02/20/2023"
+                        Day:
+                          type: string
+                          example: "Monday"
+                        Category:
+                          type: string
+                          example: "Inbox Management"
+                        Tasks Completed:
+                          type: string
+                          example: "Cleaned inbox, labeled emails, replied to recruitment messages."
+                    description: Array of row objects with column headers as keys
+        '404':
+          description: No data found in the sheet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Failed to retrieve data'
+                  details:
+                    type: string
+                    example: 'No data found'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Failed to retrieve data'
+                  details:
+                    type: string
+                    example: 'Error details...'
+
+  /api/get-email:
+    get:
+      summary: Retrieve data from the Email sheet
+      operationId: getEmail
+      responses:
+        '200':
+          description: Email data retrieved successfully
           content:
             application/json:
               schema:
@@ -40,37 +83,37 @@ paths:
                       properties:
                         Email ID:
                           type: string
+                          example: "#msg-f:1827228799333968327"
                         Subject:
                           type: string
+                          example: ""
                         Date:
                           type: string
+                          example: "Mar 21, 2025, 11:19 AM"
                         Email Link:
                           type: string
+                          example: "https://mail.google.com/mail/u/0/#search/helpdesk/FMfcgzQZTpsQMsVJdbRNDrtqXPMmWQbZ"
                         Status:
                           type: string
-                        Time Stamp:
+                          example: "saved"
+                        Time Stamo:
                           type: string
+                          example: ""
                         Content:
                           type: string
-                        Sender Name:
-                          type: string
-                        Sender Email:
-                          type: string
-                        CC Recipients:
-                          type: string
-                        BCC Recipients:
-                          type: string
-                        Labels:
-                          type: string
+                          example: "Email content..."
                     description: Array of row objects with column headers as keys
         '404':
-          description: No data found in the specified sheet
+          description: No data found in the sheet
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   error:
+                    type: string
+                    example: 'Failed to retrieve email data'
+                  details:
                     type: string
                     example: 'No data found'
         '500':
@@ -82,132 +125,55 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: 'Failed to retrieve sheet data'
+                    example: 'Failed to retrieve email data'
                   details:
                     type: string
                     example: 'Error details...'
-  /api/post-data:
-    post:
-      summary: Add data to a Google Sheet
-      operationId: postSheetData
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - spreadsheetId
-                - sheetName
-                - data
-              properties:
-                spreadsheetId:
-                  type: string
-                  description: The ID of the Google Sheet to access
-                sheetName:
-                  type: string
-                  default: email
-                  description: The name of the sheet tab to add data to
-                data:
-                  type: array
-                  items:
-                    type: object
-                    required:
-                      - Email ID
-                      - Subject
-                      - Date
-                      - Email Link
-                    properties:
-                      Email ID:
-                        type: string
-                      Subject:
-                        type: string
-                      Date:
-                        type: string
-                      Email Link:
-                        type: string
-                      Status:
-                        type: string
-                        default: saved
-                      Time Stamp:
-                        type: string
-                      Content:
-                        type: string
-                      Sender Name:
-                        type: string
-                      Sender Email:
-                        type: string
-                      CC Recipients:
-                        type: string
-                      BCC Recipients:
-                        type: string
-                      Labels:
-                        type: string
+
+  /api/get-slack-messages:
+    get:
+      summary: Retrieve data from the Slack Messages sheet
+      operationId: getSlackMessages
       responses:
         '200':
-          description: Data successfully added to sheet
+          description: Slack messages data retrieved successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                    example: 'Data successfully appended to sheet'
-                  updatedRange:
-                    type: string
-                    example: 'email!A2:H2'
-        '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: 'Failed to add data to sheet'
-  /api/remove-data:
-    post:
-      summary: Remove data from a Google Sheet
-      operationId: removeSheetData
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - spreadsheetId
-                - sheetName
-                - emailId
-              properties:
-                spreadsheetId:
-                  type: string
-                  description: The ID of the Google Sheet to access
-                sheetName:
-                  type: string
-                  default: email
-                  description: The name of the sheet tab to remove data from
-                emailId:
-                  type: string
-                  description: The Email ID to remove from the sheet
-      responses:
-        '200':
-          description: Data successfully removed from sheet
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: 'Email successfully removed from sheet'
-                  removedRow:
-                    type: integer
-                    example: 2
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        slack_msg_1742986234538_scouf6:
+                          type: string
+                          example: "slack_msg_1742986238071_g05n95"
+                        https://jim-gup5582.slack.com/archives/C08EUAB57MF/p1742302130158559:
+                          type: string
+                          example: "https://jim-gup5582.slack.com/archives/C08EUAB57MF/p1742302207368349"
+                        Mar 26, 2025:
+                          type: string
+                          example: "Mar 26, 2025"
+                        "5:48 AM":
+                          type: string
+                          example: "5:50"
+                        Jim:
+                          type: string
+                          example: "Jim"
+                        "AI Dev Tools Night, April 2, Salesforce Tower":
+                          type: string
+                          example: "test"
+                        Added:
+                          type: string
+                          example: "Added"
+                        "2025-03-26T10:50:36.581Z":
+                          type: string
+                          example: "2025-03-26T10:50:39.060Z"
+                    description: Array of row objects with column headers as keys
         '404':
-          description: Email ID not found
+          description: No data found in the sheet
           content:
             application/json:
               schema:
@@ -215,7 +181,10 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: 'Email ID not found in sheet'
+                    example: 'Failed to retrieve slack messages data'
+                  details:
+                    type: string
+                    example: 'No data found'
         '500':
           description: Server error
           content:
@@ -225,7 +194,11 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: 'Failed to remove data from sheet'
+                    example: 'Failed to retrieve slack messages data'
+                  details:
+                    type: string
+                    example: 'Error details...'
+
   /health:
     get:
       summary: Health check endpoint

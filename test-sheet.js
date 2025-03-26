@@ -1,7 +1,7 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const BASE_URL = process.env.API_URL || 'http://localhost:3000';
+const BASE_URL = process.env.API_URL || 'https://sheet-to-gpt.onrender.com';
 
 async function testEndpoint(endpoint, name) {
   try {
@@ -21,6 +21,7 @@ async function testEndpoint(endpoint, name) {
 
 async function runTests() {
   console.log('Starting API tests...');
+  console.log(`Testing against: ${BASE_URL}`);
   
   // Test health endpoint
   try {
