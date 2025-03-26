@@ -25,7 +25,7 @@ const getServiceAccountAuth = () => {
       credentials.client_email,
       null,
       credentials.private_key,
-      ['https://www.googleapis.com/auth/spreadsheets.readonly']
+      ['https://www.googleapis.com/auth/spreadsheets']
     );
   } catch (error) {
     console.error('Error initializing service account:', error);
@@ -80,9 +80,65 @@ app.get('/api/get-data', async (req, res) => {
   }
 });
 
+// Post data to Google Sheet
+app.post('/api/post-data', async (req, res) => {
+  try {
+    const { spreadsheetId, sheetName, data } = req.body;
+
+    if (!spreadsheetId || !sheetName || !data) {
+      return res.status(400).json({
+        error: 'Missing required parameters',
+        details: 'spreadsheetId, sheetName, and data are required'
+      });
+    }
+
+    // Authenticate with service account
+    const auth = getServiceAccountAuth();
+    
+    // Create sheets client
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // First, get the headers from the sheet
+    const headersResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:Z1`,
+    });
+
+    const headers = headersResponse.data.values?.[0] || [];
+    
+    // Convert data to array format
+    const values = data.map(item => {
+      return headers.map(header => item[header] || '');
+    });
+
+    // Append the data to the sheet
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${sheetName}!A:Z`,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values
+      }
+    });
+
+    res.json({
+      message: 'Data successfully appended to sheet',
+      updatedRange: response.data.updates?.updatedRange
+    });
+  } catch (error) {
+    console.error('Error posting data to sheet:', error);
+    return res.status(500).json({
+      error: 'Failed to post data to sheet',
+      details: error.message
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Sheet-to-GPT server is running on port ${PORT}`);
   console.log(`Health check available at http://localhost:${PORT}/health`);
-  console.log(`API endpoint available at http://localhost:${PORT}/api/get-data`);
+  console.log(`API endpoints available at:`);
+  console.log(`- GET http://localhost:${PORT}/api/get-data`);
+  console.log(`- POST http://localhost:${PORT}/api/post-data`);
 });
