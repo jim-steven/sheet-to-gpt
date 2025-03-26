@@ -37,6 +37,21 @@ paths:
                           type: string
                           example: "Cleaned inbox, labeled emails, replied to recruitment messages."
                     description: Array of row objects with column headers as keys
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 84
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      totalPages:
+                        type: integer
+                        example: 9
         '404':
           description: No data found in the sheet
           content:
@@ -66,8 +81,44 @@ paths:
 
   /api/get-email:
     get:
-      summary: Retrieve data from the Email sheet
+      summary: Retrieve data from the Email sheet with pagination and filtering
       operationId: getEmail
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Number of items per page
+        - name: subject
+          in: query
+          schema:
+            type: string
+          description: Filter emails by subject (case-insensitive partial match)
+        - name: date
+          in: query
+          schema:
+            type: string
+          description: Filter emails by date (case-insensitive partial match)
+        - name: sender
+          in: query
+          schema:
+            type: string
+          description: Filter emails by sender name (case-insensitive partial match)
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Filter emails by status (case-insensitive partial match)
       responses:
         '200':
           description: Email data retrieved successfully
@@ -103,6 +154,21 @@ paths:
                           type: string
                           example: "Email content..."
                     description: Array of row objects with column headers as keys
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 9
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      totalPages:
+                        type: integer
+                        example: 1
         '404':
           description: No data found in the sheet
           content:
@@ -172,6 +238,21 @@ paths:
                           type: string
                           example: "2025-03-26T10:50:39.060Z"
                     description: Array of row objects with column headers as keys
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 3
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      totalPages:
+                        type: integer
+                        example: 1
         '404':
           description: No data found in the sheet
           content:

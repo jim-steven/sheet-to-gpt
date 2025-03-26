@@ -46,8 +46,8 @@ const getServiceAccountAuth = () => {
   }
 };
 
-// Common function to fetch and process sheet data
-const fetchSheetData = async (sheetName) => {
+// Common function to fetch and process sheet data with pagination and filtering
+const fetchSheetData = async (sheetName, options = {}) => {
   try {
     const auth = getServiceAccountAuth();
     const sheets = google.sheets({ version: 'v4', auth });
@@ -77,13 +77,41 @@ const fetchSheetData = async (sheetName) => {
     
     // Convert to JSON with headers as keys
     const headers = rows[0];
-    return rows.slice(1).map(row => {
+    let data = rows.slice(1).map(row => {
       const item = {};
       headers.forEach((header, index) => {
         item[header] = row[index] || '';
       });
       return item;
     });
+
+    // Apply filters if provided
+    if (options.filters) {
+      data = data.filter(item => {
+        return Object.entries(options.filters).every(([key, value]) => {
+          if (!value) return true;
+          const itemValue = item[key]?.toLowerCase() || '';
+          return itemValue.includes(value.toLowerCase());
+        });
+      });
+    }
+
+    // Apply pagination
+    const page = Number.parseInt(options.page) || 1;
+    const limit = Number.parseInt(options.limit) || 10;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedData = data.slice(startIndex, endIndex);
+
+    return {
+      data: paginatedData,
+      pagination: {
+        total: data.length,
+        page,
+        limit,
+        totalPages: Math.ceil(data.length / limit)
+      }
+    };
   } catch (error) {
     console.error(`Error fetching ${sheetName} sheet data:`, error);
     throw error;
@@ -93,8 +121,8 @@ const fetchSheetData = async (sheetName) => {
 // Get data from the Data sheet
 app.get('/api/get-data', async (req, res) => {
   try {
-    const data = await fetchSheetData(SHEETS.DATA);
-    res.json({ data });
+    const result = await fetchSheetData(SHEETS.DATA);
+    res.json(result);
   } catch (error) {
     res.status(error.message.includes('not found') ? 404 : 500).json({
       error: 'Failed to retrieve data',
@@ -103,11 +131,23 @@ app.get('/api/get-data', async (req, res) => {
   }
 });
 
-// Get data from the Email sheet
+// Get data from the Email sheet with pagination and filtering
 app.get('/api/get-email', async (req, res) => {
   try {
-    const data = await fetchSheetData(SHEETS.EMAIL);
-    res.json({ data });
+    const { page, limit, subject, date, sender, status } = req.query;
+    const filters = {
+      Subject: subject,
+      Date: date,
+      'Sender Name': sender,
+      Status: status
+    };
+
+    const result = await fetchSheetData(SHEETS.EMAIL, {
+      page,
+      limit,
+      filters
+    });
+    res.json(result);
   } catch (error) {
     res.status(error.message.includes('not found') ? 404 : 500).json({
       error: 'Failed to retrieve email data',
@@ -119,8 +159,8 @@ app.get('/api/get-email', async (req, res) => {
 // Get data from the Slack Messages sheet
 app.get('/api/get-slack-messages', async (req, res) => {
   try {
-    const data = await fetchSheetData(SHEETS.SLACK_MESSAGES);
-    res.json({ data });
+    const result = await fetchSheetData(SHEETS.SLACK_MESSAGES);
+    res.json(result);
   } catch (error) {
     res.status(error.message.includes('not found') ? 404 : 500).json({
       error: 'Failed to retrieve slack messages data',
