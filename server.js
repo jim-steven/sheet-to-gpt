@@ -6,6 +6,14 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Constants
+const SPREADSHEET_ID = '1m6e-HTb1W_trKMKgkkM-ItcuwJJW-Ab6lM_TKmOAee4';
+const SHEETS = {
+  DATA: 'data',
+  EMAIL: 'email',
+  SLACK_MESSAGES: 'slack_messages'
+};
+
 // Middleware
 app.use(cors({
   origin: '*',
@@ -23,20 +31,14 @@ app.get('/health', (req, res) => {
 // Initialize service account auth
 const getServiceAccountAuth = () => {
   try {
-    // Get credentials from environment variable
     const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-    
-    // Create a new JWT client
     const auth = new google.auth.JWT(
       credentials.client_email,
       null,
       credentials.private_key,
       ['https://www.googleapis.com/auth/spreadsheets']
     );
-
-    // Set the key algorithm
     auth.keyAlgorithm = 'RS256';
-    
     return auth;
   } catch (error) {
     console.error('Error initializing service account:', error);
@@ -44,63 +46,85 @@ const getServiceAccountAuth = () => {
   }
 };
 
-// Get all data from the Data sheet
-app.get('/api/get-data', async (req, res) => {
+// Common function to fetch and process sheet data
+const fetchSheetData = async (sheetName) => {
   try {
-    // Get spreadsheet ID from query parameter or use default from env
-    const spreadsheetId = req.query.spreadsheetId || process.env.DEFAULT_SPREADSHEET_ID;
-    // Get sheet name from query parameter or use default "email"
-    const sheetName = req.query.sheetName || 'email';
-    
-    // Authenticate with service account
     const auth = getServiceAccountAuth();
-    
-    // Create sheets client
     const sheets = google.sheets({ version: 'v4', auth });
     
     // First verify the sheet exists
     const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId,
+      spreadsheetId: SPREADSHEET_ID,
     });
 
     const sheet = spreadsheet.data.sheets.find(s => s.properties.title === sheetName);
     
     if (!sheet) {
-      return res.status(404).json({ 
-        error: 'Sheet not found',
-        details: `Sheet "${sheetName}" not found in spreadsheet`
-      });
+      throw new Error(`Sheet "${sheetName}" not found in spreadsheet`);
     }
     
     // Fetch data from the sheet
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
+      spreadsheetId: SPREADSHEET_ID,
       range: `${sheetName}!A1:Z`,
     });
     
     const rows = response.data.values || [];
     
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'No data found' });
+      throw new Error('No data found');
     }
     
     // Convert to JSON with headers as keys
     const headers = rows[0];
-    const data = rows.slice(1).map(row => {
+    return rows.slice(1).map(row => {
       const item = {};
       headers.forEach((header, index) => {
         item[header] = row[index] || '';
       });
       return item;
     });
-    
+  } catch (error) {
+    console.error(`Error fetching ${sheetName} sheet data:`, error);
+    throw error;
+  }
+};
+
+// Get data from the Data sheet
+app.get('/api/get-data', async (req, res) => {
+  try {
+    const data = await fetchSheetData(SHEETS.DATA);
     res.json({ data });
   } catch (error) {
-    console.error('Error fetching sheet data:', error);
-    // Ensure we only send one response with proper JSON formatting
-    return res.status(500).json({ 
-      error: 'Failed to retrieve sheet data', 
-      details: error.message 
+    res.status(error.message.includes('not found') ? 404 : 500).json({
+      error: 'Failed to retrieve data',
+      details: error.message
+    });
+  }
+});
+
+// Get data from the Email sheet
+app.get('/api/get-email', async (req, res) => {
+  try {
+    const data = await fetchSheetData(SHEETS.EMAIL);
+    res.json({ data });
+  } catch (error) {
+    res.status(error.message.includes('not found') ? 404 : 500).json({
+      error: 'Failed to retrieve email data',
+      details: error.message
+    });
+  }
+});
+
+// Get data from the Slack Messages sheet
+app.get('/api/get-slack-messages', async (req, res) => {
+  try {
+    const data = await fetchSheetData(SHEETS.SLACK_MESSAGES);
+    res.json({ data });
+  } catch (error) {
+    res.status(error.message.includes('not found') ? 404 : 500).json({
+      error: 'Failed to retrieve slack messages data',
+      details: error.message
     });
   }
 });
@@ -283,8 +307,10 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Sheet-to-GPT server is running on port ${PORT}`);
   console.log(`Health check available at http://localhost:${PORT}/health`);
-  console.log(`API endpoints available at:`);
-  console.log(`- GET http://localhost:${PORT}/api/get-data`);
+  console.log('Available endpoints:');
+  console.log(`- http://localhost:${PORT}/api/get-data`);
+  console.log(`- http://localhost:${PORT}/api/get-email`);
+  console.log(`- http://localhost:${PORT}/api/get-slack-messages`);
   console.log(`- POST http://localhost:${PORT}/api/post-data`);
   console.log(`- POST http://localhost:${PORT}/api/remove-data`);
 });
